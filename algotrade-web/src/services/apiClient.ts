@@ -2,7 +2,7 @@ import axios, { AxiosError } from "axios";
 import type { InternalAxiosRequestConfig } from "axios";
 import { tokenStore } from "./tokenStore";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL ?? "https://algotrade-api-bvbz.onrender.com";
 
 export const api = axios.create({
   baseURL: API_URL,
