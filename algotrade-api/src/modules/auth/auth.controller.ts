@@ -8,7 +8,7 @@ const REFRESH_COOKIE_NAME = "refreshToken";
 const refreshCookieOptions = {
   httpOnly: true,
   secure: env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  sameSite: env.NODE_ENV === "production" ? ("none" as const) : ("lax" as const),
   path: "/api/auth",
   maxAge: env.JWT_REFRESH_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000,
 };
@@ -18,7 +18,10 @@ function setRefreshCookie(res: Response, token: string) {
 }
 
 function clearRefreshCookie(res: Response) {
-  res.clearCookie(REFRESH_COOKIE_NAME, { path: "/api/auth" });
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    ...refreshCookieOptions,
+    maxAge: undefined,
+  });
 }
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
