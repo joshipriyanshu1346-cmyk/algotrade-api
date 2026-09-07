@@ -6,68 +6,58 @@ import pinoHttp from "pino-http";
 
 import { env } from "./config/env";
 import { logger } from "./utils/logger";
-
 import {
   errorHandler,
   notFoundHandler,
 } from "./middleware/error.middleware";
-
 import authRoutes from "./modules/auth/routes/auth.routes";
 
 export function createApp(): Express {
   const app = express();
 
-  // Trust proxy for Render deployment
-  app.set("trust proxy", 1);
-
-  // Security
-  app.use(helmet());
-
-  // Allowed frontend origins
   const allowedOrigins = env.CLIENT_URL
     .split(",")
     .map((url) => url.trim())
     .filter(Boolean);
 
-  // CORS
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Allow requests without origin (Postman, server-to-server)
-        if (!origin) {
-          return callback(null, true);
-        }
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      // Allow requests without origin (Postman, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
 
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-        logger.warn(
-          {
-            origin,
-            allowedOrigins,
-          },
-          "CORS blocked request"
-        );
+      logger.warn(`CORS blocked origin: ${origin}`);
 
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
-      },
+      return callback(new Error(`CORS not allowed for origin: ${origin}`));
+    },
 
-      credentials: true,
+    credentials: true,
 
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-      ],
-    })
-  );
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+    ],
+  };
 
-  // Body parser
+  // Security
+  app.use(helmet());
+
+  // CORS MUST be before routes
+  app.use(cors(corsOptions));
+
+  // Explicit preflight handling
+  app.options(/.*/, cors(corsOptions));
+
+  // Body parsers
   app.use(express.json());
-
-  // Cookies
   app.use(cookieParser());
 
   // Logger
@@ -87,10 +77,8 @@ export function createApp(): Express {
   // Routes
   app.use("/api/auth", authRoutes);
 
-  // 404 Handler
+  // Error handlers
   app.use(notFoundHandler);
-
-  // Global Error Handler
   app.use(errorHandler);
 
   return app;
