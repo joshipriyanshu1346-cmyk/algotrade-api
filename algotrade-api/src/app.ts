@@ -15,10 +15,12 @@ import authRoutes from "./modules/auth/routes/auth.routes";
 export function createApp(): Express {
   const app = express();
 
-  const allowedOrigins = env.CLIENT_URL
-    .split(",")
-    .map((url) => url.trim())
-    .filter(Boolean);
+  const allowedOrigins = new Set(
+    env.CLIENT_URL
+      .split(",")
+      .map((url) => url.trim())
+      .filter(Boolean)
+  );
 
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
@@ -27,7 +29,7 @@ export function createApp(): Express {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(origin)) {
         return callback(null, true);
       }
 

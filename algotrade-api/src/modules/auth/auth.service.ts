@@ -9,7 +9,7 @@ import {
   refreshTokenExpiryDate,
   signAccessToken,
 } from "../../utils/jwt";
-import { LoginInput, RegisterInput } from "./validation/auth.validation";
+import { LoginInput, RegisterInput, normalizeEmail } from "./validation/auth.validation";
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -58,7 +58,8 @@ async function issueTokenPair(userId: string, role: "USER" | "ADMIN"): Promise<T
 }
 
 export async function register(input: RegisterInput): Promise<{ user: PublicUser; tokens: TokenPair }> {
-  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  const normalizedEmail = normalizeEmail(input.email);
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     throw ApiError.conflict("An account with this email already exists");
   }
@@ -68,7 +69,7 @@ export async function register(input: RegisterInput): Promise<{ user: PublicUser
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      email: input.email,
+      email: normalizedEmail,
       passwordHash,
       authProvider: "LOCAL",
     },
@@ -79,9 +80,10 @@ export async function register(input: RegisterInput): Promise<{ user: PublicUser
 }
 
 export async function login(input: LoginInput): Promise<{ user: PublicUser; tokens: TokenPair }> {
-  const user = await prisma.user.findUnique({ where: { email: input.email } });
+  const normalizedEmail = normalizeEmail(input.email);
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-  if (!user || !user.passwordHash) {
+  if (!user?.passwordHash) {
     // Same error whether the user doesn't exist or signed up via Google —
     // avoids leaking which emails are registered.
     throw ApiError.unauthorized("Invalid email or password");
@@ -112,9 +114,11 @@ export async function loginWithGoogle(idToken: string): Promise<{ user: PublicUs
     throw ApiError.unauthorized("Invalid Google token");
   }
 
-  if (!payload || !payload.email || !payload.sub) {
+  if (!payload?.email || !payload.sub) {
     throw ApiError.unauthorized("Invalid Google token payload");
   }
+
+  const normalizedEmail = normalizeEmail(payload.email);
 
   if (!payload.email_verified) {
     throw ApiError.unauthorized("Google email is not verified");
@@ -125,7 +129,7 @@ export async function loginWithGoogle(idToken: string): Promise<{ user: PublicUs
   let user = await prisma.user.findUnique({ where: { googleId: payload.sub } });
 
   if (!user) {
-    const existingByEmail = await prisma.user.findUnique({ where: { email: payload.email } });
+    const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (existingByEmail) {
       user = await prisma.user.update({
@@ -135,8 +139,8 @@ export async function loginWithGoogle(idToken: string): Promise<{ user: PublicUs
     } else {
       user = await prisma.user.create({
         data: {
-          name: payload.name ?? payload.email.split("@")[0],
-          email: payload.email,
+          name: payload.name ?? normalizedEmail.split("@")[0],
+          email: normalizedEmail,
           googleId: payload.sub,
           authProvider: "GOOGLE",
         },

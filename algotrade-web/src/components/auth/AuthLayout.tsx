@@ -1,17 +1,17 @@
 import { Link } from "react-router-dom";
 
 interface AuthLayoutProps {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly children: React.ReactNode;
+  readonly footer?: React.ReactNode;
 }
 
 export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen">
       {/* Brand panel */}
-      <div className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-surface-elevated via-surface to-emerald-950/30 p-12 lg:flex">
+      <div className="hidden w-1/2 flex-col justify-between bg-linear-to-br from-surface-elevated via-surface to-emerald-950/30 p-12 lg:flex">
         <div>
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
@@ -30,8 +30,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
 
         <div className="space-y-6">
           <h2 className="text-4xl font-bold leading-tight text-text">
-            Trade smarter with
-            <span className="block text-emerald-400">algorithmic precision</span>
+            Trade smarter with <span className="block text-emerald-400">algorithmic precision</span>
           </h2>
           <p className="max-w-md text-lg text-text-muted">
             Build, backtest, and deploy strategies from one dashboard. Secure auth powered by
